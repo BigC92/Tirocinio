@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prova API Maps</title>
+    <style type="text/css">
+        html, body, #map-canvas { height: 80%; width: 80%; margin: 25px; padding: 0;}
+    </style>
+    <script type="text/javascript"
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBmYC8wXlEiF1ZNIhjWJCVkVilzWA_VfeA">
+    </script>
+    <script type="text/javascript">
+        function initialize() {
+            var mapOptions = {
+                center: { lat: 41.8919300, lng: 12.5113300},
+                zoom: 12
+            };
+            var map = new google.maps.Map(document.getElementById('map-canvas'),
+                    mapOptions);
+        }
+        google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+</head>
+<body>
+<div id="map-canvas"></div>
+<img src="https://maps.googleapis.com/maps/api/staticmap?center=Roma,IT&zoom=14&size=400x400" style="margin-top: 20px"/>
+</body>
+</html>
