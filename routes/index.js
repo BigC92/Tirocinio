@@ -4,9 +4,9 @@ var base64Img = require('base64-img');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  var url = 'https://maps.googleapis.com/maps/api/staticmap?center=Rome,IT&zoom=10&size=1000x1000&scale=2&key=AIzaSyBmYC8wXlEiF1ZNIhjWJCVkVilzWA_VfeA';
+  var url = 'https://maps.googleapis.com/maps/api/staticmap?zoom=2&size=640x640&scale=2&key=AIzaSyBmYC8wXlEiF1ZNIhjWJCVkVilzWA_VfeA';
   base64Img.requestBase64(url, function(e, r, body) {
-    res.render('index', {url: body});
+    res.render('map', {url: body});
   });
 });
 

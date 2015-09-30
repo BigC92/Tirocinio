@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<!--<script src="javascripts/three.min.js"></script>
+<script>
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+
+    var renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild( renderer.domElement );
+
+    var geometry = new THREE.PlaneGeometry( 1000, 1000, 0, 0 );
+    var texture = THREE.ImageUtils.loadTexture("<%= url %>", {}, function(){});
+    var material = new THREE.MeshBasicMaterial( { color: 0xffffff, map: texture } );
+    var plane = new THREE.Mesh( geometry, material );
+    plane.rotation.x=-45.1;
+    scene.add( plane );
+
+    camera.position.z = 1050;
+    camera.position.y = 5;
+
+    var render = function () {
+        requestAnimationFrame( render );
+
+        renderer.render(scene, camera);
+    };
+
+    render();
+</script>-->
+<img src="<%= url %>"/>
+</body>
+</html>
