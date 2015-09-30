@@ -5,7 +5,7 @@
     <title></title>
 </head>
 <body>
-<!--<script src="javascripts/three.min.js"></script>
+<script src="../javascripts/three.min.js"></script>
 <script>
     var scene = new THREE.Scene();
     var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
@@ -14,14 +14,14 @@
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
 
-    var geometry = new THREE.PlaneGeometry( 1000, 1000, 0, 0 );
-    var texture = THREE.ImageUtils.loadTexture("<%= url %>", {}, function(){});
+    var geometry = new THREE.PlaneGeometry( 640, 640, 0, 0 );
+    var texture = THREE.ImageUtils.loadTexture("/image/<%=center%>", {}, function(){});
     var material = new THREE.MeshBasicMaterial( { color: 0xffffff, map: texture } );
     var plane = new THREE.Mesh( geometry, material );
     plane.rotation.x=-45.1;
     scene.add( plane );
 
-    camera.position.z = 1050;
+    camera.position.z = 700;
     camera.position.y = 5;
 
     var render = function () {
@@ -31,7 +31,7 @@
     };
 
     render();
-</script>-->
-<img src="<%= url %>"/>
+</script>
+<!--<img src="/image/<%=center%>"/>-->
 </body>
 </html>
