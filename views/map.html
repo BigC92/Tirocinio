@@ -15,7 +15,8 @@
     document.body.appendChild( renderer.domElement );
 
     var geometry = new THREE.PlaneGeometry( 640, 640, 0, 0 );
-    var texture = THREE.ImageUtils.loadTexture("/image/<%=center%>", {}, function(){});
+    console.log("/image/<%=ne_lat %>/<%=sw_lat %>/<%=ne_long %>/<%=sw_long %>");
+    var texture = THREE.ImageUtils.loadTexture("/image/<%=ne_lat %>/<%=sw_lat %>/<%=ne_long %>/<%=sw_long %>", {}, function(){});
     var material = new THREE.MeshBasicMaterial( { color: 0xffffff, map: texture } );
     var plane = new THREE.Mesh( geometry, material );
     plane.rotation.x=-45.1;
@@ -32,6 +33,5 @@
 
     render();
 </script>
-<!--<img src="/image/<%=center%>"/>-->
 </body>
 </html>

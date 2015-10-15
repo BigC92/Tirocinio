@@ -22,6 +22,11 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
+//evita le chiamate in cache
+app.get('/*', function(req, res, next){
+  res.setHeader('Last-Modified', (new Date()).toUTCString());
+  next();
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
