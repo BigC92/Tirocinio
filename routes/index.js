@@ -5,12 +5,12 @@ var mathjs = require('mathjs');
 
 var zoom_lon = function(dLon){
     var rapporto = ((360*640)/(256*dLon));
-    return Math.round((mathjs.log(rapporto, 2)));
+    return Math.floor((mathjs.log(rapporto, 2)));
 };
 
 var zoom_lat = function(dLat){
     var rap = ((170.10226*640)/(256*dLat));
-    return Math.round((mathjs.log(rap, 2)));
+    return Math.floor((mathjs.log(rap, 2)));
 };
 
 /* GET home page. */
