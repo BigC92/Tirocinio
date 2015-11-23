@@ -31,8 +31,10 @@ app.use(function(req, res, next) {
   next(err);
 });
 
-// error handlers
-
+app.get('/*', function(req, res, next){
+  res.setHeader('Last-Modified', (new Date()).toUTCString());
+  next();
+});
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {

@@ -25,7 +25,7 @@ var lonToX = function(long){
 
 var height = function(d, z){
     var altezza = (256*Math.pow(2,z)*d)/latitude;
-    return altezza*0.68;
+    return altezza*0.7;
 };
 
 var width = function(d, z){

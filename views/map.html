@@ -21,10 +21,12 @@
     var renderer, scene, camera;
     var controls, texture, material;
     var clock = new THREE.Clock();
-
+    var c_lon;
+    var newC_lon;
     var keyboard = new THREEx.KeyboardState();
-
-    var plane;
+    var w = parseFloat("<%=width%>");
+    var h = parseFloat("<%=height%>");
+    var plane, succPlane, prevPlane;
     var auxPlane;
 
     init();
@@ -44,30 +46,39 @@
         controls.noZoom = true;
         controls.noRotate = true;
         controls.noPan = true;
-
+        c_lon = parseFloat("<%=c_lon%>");
         var geometry = new THREE.BoxGeometry(640, 640, 0.1);
-        texture = THREE.ImageUtils.loadTexture("/image/<%=c_lat%>/<%=c_lon%>/<%=zoom%>", {},
+        texture = THREE.ImageUtils.loadTexture("/image/<%=c_lat%>/"+ c_lon +"/<%=zoom%>", {},
                 function () {});
+        texture.minFilter = THREE.LinearFilter;
         material = new THREE.MeshBasicMaterial({ map: texture, color: 0xffffff});
         plane = new THREE.Mesh(geometry, material);
-        plane.position.y=-0.5;
         plane.rotation.x = -Math.PI/2;
 
         var aux = new THREE.BoxGeometry("<%=width%>", "<%=height%>", 0.1);
         var auxMesh = new THREE.Mesh(aux);
         var auxBSP = new ThreeBSP(auxMesh);
 
-        var logical = new THREE.BoxGeometry(10000, 10000, 0.1);
+        var logical = new THREE.BoxGeometry(20000, 20000, 0.1);
         var logicalMesh = new THREE.Mesh(logical);
         var logicalBSP = new ThreeBSP(logicalMesh);
 
         var newPlaneBSP = logicalBSP.subtract(auxBSP);
         var newMaterial = new THREE.MeshBasicMaterial({color: 0xffffff});
         auxPlane = newPlaneBSP.toMesh(newMaterial);
+        auxPlane.position.y = 0.5;
         auxPlane.rotation.x = -Math.PI/2;
 
         scene.add(auxPlane);
         scene.add(plane);
+    }
+//    Calcola il centro della tile a destra
+    function succCenter(a){
+        return ((360*640)/(256*Math.pow(2,parseInt("<%=zoom%>"))))+a;
+    }
+//    Calcola il centro della tile a sinistra
+    function prevCenter(a){
+        return a-((360*640)/(256*Math.pow(2,parseInt("<%=zoom%>"))));
     }
 
     function animate()
@@ -79,38 +90,74 @@
 
     function update()
     {
-        var moveDistance = 1;
+        var moveDistance = 1.5;
         // move forwards/backwards/left/right
         if ( keyboard.pressed("up") ){
             console.log("up");
-            if(plane.position.z < ((640 - parseFloat("<%=height%>"))/2)){
+            if(plane.position.z < ((640 - h)/2)){
                 plane.position.z += moveDistance;
             }
             console.log(plane.position.z);
         }
+
         if ( keyboard.pressed("down") ) {
             console.log("down");
-            console.log((-640 + parseFloat("<%=height%>"))/2);
-            if(plane.position.z > ((-640 + parseFloat("<%=height%>"))/2)){
+            console.log((-640 + h)/2);
+            if(plane.position.z > ((h - 640)/2)){
                 plane.position.z -= moveDistance;
             }
             console.log(plane.position.z);
         }
+
         if ( keyboard.pressed("left") ){
             console.log("left");
-            console.log((640 - parseFloat("<%=width%>"))/2);
-            if(plane.position.x < (640 - parseFloat("<%=width%>"))/2){
+            if((plane.position.x < (640-w)/2) || (newC_lon <= 180 && newC_lon >= -180)) {
                 plane.position.x += moveDistance;
             }
-            console.log(plane.position.x);
+            newC_lon=prevCenter(c_lon);
+            while((plane.position.x > (((640 - w)/2))) && (newC_lon <= 180 && newC_lon >= -180)) {
+                c_lon=newC_lon;
+                var prev = new THREE.BoxGeometry(640, 640, 0.1);
+                var prevTexture = new THREE.ImageUtils.loadTexture("/image/<%=c_lat%>/" +
+                        c_lon + "/<%=zoom%>", {}, function () {
+                });
+                prevTexture.minFilter = THREE.LinearFilter;
+                var prevMaterial = new THREE.MeshBasicMaterial({map: prevTexture, color: 0xffffff});
+                prevPlane = new THREE.Mesh(prev, prevMaterial);
+                prevPlane.rotation.x = -Math.PI / 2;
+                prevPlane.position.x = plane.position.x - 640+w;
+                prevPlane.position.z = plane.position.z;
+                scene.add(prevPlane);
+                scene.remove(plane);
+                plane = prevPlane;
+
+            }
         }
+
+
         if ( keyboard.pressed("right") ) {
             console.log("right");
-            console.log((640 - parseFloat("<%=width%>"))/2);
-            if(plane.position.x > (-640 + parseFloat("<%=width%>"))/2){
+            newC_lon = succCenter(c_lon);
+
+            if((plane.position.x > (w-640)/2) || (newC_lon <= 180 && newC_lon >= -180)) {
                 plane.position.x -= moveDistance;
             }
-            console.log(plane.position.x);
+            while((plane.position.x < (-640 + w)/2) && (newC_lon <= 180 && newC_lon >= -180)) {
+                c_lon=newC_lon;
+                var succ = new THREE.BoxGeometry(640, 640, 0.1);
+                var succTexture = new THREE.ImageUtils.loadTexture("/image/<%=c_lat%>/" +
+                        c_lon + "/<%=zoom%>", {}, function () {
+                });
+                succTexture.minFilter = THREE.LinearFilter;
+                var succMaterial = new THREE.MeshBasicMaterial({map: succTexture, color: 0xffffff});
+                succPlane = new THREE.Mesh(succ, succMaterial);
+                succPlane.rotation.x = -Math.PI / 2;
+                succPlane.position.x = plane.position.x + 640-w;
+                succPlane.position.z = plane.position.z;
+                scene.add(succPlane);
+                scene.remove(plane);
+                plane = succPlane;
+            }
         }
 
         controls.update();
