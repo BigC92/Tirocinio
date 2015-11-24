@@ -15,14 +15,6 @@ var zoom_lat = function(dLat){
     return Math.floor((mathjs.log(rap, 2)));
 };
 
-/*var latToY = function(lat){
-    return ((-1*lat) + 90) * ( 640 / 180);
-};
-
-var lonToX = function(long){
-    return (lon + 180) * (640 / 360);
-};*/
-
 var height = function(d, z){
     var altezza = (256*Math.pow(2,z)*d)/latitude;
     return altezza*0.7;

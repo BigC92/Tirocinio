@@ -19,14 +19,16 @@
 <script src="javascripts/THREEx.WindowResize.js"></script>
 <script>
     var renderer, scene, camera;
+    var geometry = new THREE.BoxGeometry(640, 640, 0.1);
     var controls, texture, material;
     var clock = new THREE.Clock();
-    var c_lon;
-    var newC_lon;
+    var c_lon, c_lat;
+    var newC_lon, newC_lat;
     var keyboard = new THREEx.KeyboardState();
     var w = parseFloat("<%=width%>");
     var h = parseFloat("<%=height%>");
-    var plane, succPlane, prevPlane;
+    var z = parseInt("<%=zoom%>");
+    var plane, succPlane, prevPlane, supPlane, infPlane, zoomP;
     var auxPlane;
 
     init();
@@ -47,8 +49,9 @@
         controls.noRotate = true;
         controls.noPan = true;
         c_lon = parseFloat("<%=c_lon%>");
-        var geometry = new THREE.BoxGeometry(640, 640, 0.1);
-        texture = THREE.ImageUtils.loadTexture("/image/<%=c_lat%>/"+ c_lon +"/<%=zoom%>", {},
+        c_lat = parseFloat("<%=c_lat%>");
+
+        texture = THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+ c_lon +"/"+z, {},
                 function () {});
         texture.minFilter = THREE.LinearFilter;
         material = new THREE.MeshBasicMaterial({ map: texture, color: 0xffffff});
@@ -72,13 +75,29 @@
         scene.add(auxPlane);
         scene.add(plane);
     }
+
+    function approxLat(LAT){
+        return (-0.0073*LAT)+1;
+    }
+
+//    Calcola il centro della tile superiore
+    function supCenter(a){
+        return (((170.1022*640)/(256*Math.pow(2,z)))+a);
+    }
+
+//    Calcola il centro della tile inferiore
+    function infCenter(a){
+        return (a-((170.1022*640)/(256*Math.pow(2,z))));
+    }
+
 //    Calcola il centro della tile a destra
     function succCenter(a){
-        return ((360*640)/(256*Math.pow(2,parseInt("<%=zoom%>"))))+a;
+        return ((360*640)/(256*Math.pow(2,z)))+a;
     }
+
 //    Calcola il centro della tile a sinistra
     function prevCenter(a){
-        return a-((360*640)/(256*Math.pow(2,parseInt("<%=zoom%>"))));
+        return a-((360*640)/(256*Math.pow(2,z)));
     }
 
     function animate()
@@ -90,23 +109,106 @@
 
     function update()
     {
-        var moveDistance = 1.5;
-        // move forwards/backwards/left/right
+        var moveDistance = 1;
+//        zoom up/down
+        if(keyboard.pressed("W")){
+            if(z<=20) {
+                z += 1;
+                var zoomedTexture = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {}, function () {
+                });
+                zoomedTexture.minFilter = THREE.LinearFilter;
+                var zoomedMaterial = new THREE.MeshBasicMaterial({map: zoomedTexture, color: 0xffffff});
+                zoomP = new THREE.Mesh(geometry, zoomedMaterial);
+                zoomP.rotation.x = -Math.PI / 2;
+                zoomP.positions = plane.positions;
+                scene.remove(plane);
+                scene.add(zoomP);
+                plane = zoomP;
+                zoomP = null;
+            }
+        }
+
+        if(keyboard.pressed("S")){
+            if(z>=1) {
+                z -= 1;
+                var deZoomedText = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {}, function () {
+                });
+                deZoomedText.minFilter = THREE.LinearFilter;
+                var deZoomedMat = new THREE.MeshBasicMaterial({map: deZoomedText, color: 0xffffff});
+                zoomP = new THREE.Mesh(geometry, deZoomedMat);
+                zoomP.rotation.x = -Math.PI / 2;
+                zoomP.position = plane.position;
+                scene.remove(plane);
+                scene.add(zoomP);
+                plane = zoomP;
+                zoomP = null;
+            }
+        }
+
+//        move forwards/backwards/left/right
         if ( keyboard.pressed("up") ){
             console.log("up");
-            if(plane.position.z < ((640 - h)/2)){
-                plane.position.z += moveDistance;
-            }
+            plane.position.z += moveDistance;
+            newC_lat = supCenter(c_lat);
+            while(plane.position.z > ((640 - h)/2)/2){
+                    scene.remove(supPlane);
+                    c_lat=newC_lat;
+                    var supTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
+                            c_lon+"/"+z,{}, function(){});
+                    supTexture.minFilter = THREE.LinearFilter;
+                    var supMaterial = new THREE.MeshBasicMaterial({map: supTexture, color: 0xffffff});
+                    supPlane = new THREE.Mesh(geometry, supMaterial);
+                    supPlane.rotation.x = -Math.PI/2;
+                    supPlane.position.x = plane.position.x;
+                    supPlane.position.z = plane.position.z-639;
+                    console.log(approxLat(c_lat));
+                    plane.position.y = -0.2;
+                    scene.add(supPlane);
+                    scene.remove(infPlane);
+                    scene.remove(succPlane);
+                    scene.remove(prevPlane);
+                    infPlane=plane;
+                    plane=supPlane;
+                    supPlane=null;
+                }
+            if(infPlane!=null) infPlane.position.z +=moveDistance;
+            if(supPlane!=null) supPlane.position.z += moveDistance;
+            if(prevPlane!=null) prevPlane.position.z +=moveDistance;
+            if(succPlane!=null) succPlane.position.z +=moveDistance;
             console.log(plane.position.z);
         }
 
         if ( keyboard.pressed("down") ) {
             console.log("down");
             console.log((-640 + h)/2);
-            if(plane.position.z > ((h - 640)/2)){
-                plane.position.z -= moveDistance;
+            plane.position.z -= moveDistance;
+            newC_lat = infCenter(c_lat);
+            while(plane.position.z < ((h - 640)/2)/2){
+                scene.remove(infPlane);
+                c_lat=newC_lat;
+                var infTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
+                        c_lon+"/"+z,{}, function(){
+                });
+                infTexture.minFilter = THREE.LinearFilter;
+                var infMaterial = new THREE.MeshBasicMaterial({map: infTexture, color: 0xffffff});
+                infPlane = new THREE.Mesh(geometry, infMaterial);
+                infPlane.rotation.x = -Math.PI/2;
+                infPlane.position.x = plane.position.x;
+                infPlane.position.z = plane.position.z+639;
+                console.log(approxLat(c_lat));
+                plane.position.y = -0.2;
+                scene.add(infPlane);
+                scene.remove(supPlane);
+                scene.remove(succPlane);
+                scene.remove(prevPlane);
+                supPlane=plane;
+                plane=infPlane;
+                infPlane=null;
             }
-            console.log(plane.position.z);
+            if(supPlane!=null) supPlane.position.z -=moveDistance;
+            if(infPlane!=null) infPlane.position.z -=moveDistance;
+            if(prevPlane!=null) prevPlane.position.z -=moveDistance;
+            if(succPlane!=null) succPlane.position.z -=moveDistance;
         }
 
         if ( keyboard.pressed("left") ){
@@ -115,23 +217,31 @@
                 plane.position.x += moveDistance;
             }
             newC_lon=prevCenter(c_lon);
-            while((plane.position.x > (((640 - w)/2))) && (newC_lon <= 180 && newC_lon >= -180)) {
+            while((plane.position.x > (((640 - w)/2)/2)) && (newC_lon <= 180 && newC_lon >= -180)) {
+                scene.remove(prevPlane);
                 c_lon=newC_lon;
-                var prev = new THREE.BoxGeometry(640, 640, 0.1);
-                var prevTexture = new THREE.ImageUtils.loadTexture("/image/<%=c_lat%>/" +
-                        c_lon + "/<%=zoom%>", {}, function () {
+                var prevTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
+                        c_lon+"/"+z, {}, function () {
                 });
                 prevTexture.minFilter = THREE.LinearFilter;
                 var prevMaterial = new THREE.MeshBasicMaterial({map: prevTexture, color: 0xffffff});
-                prevPlane = new THREE.Mesh(prev, prevMaterial);
+                prevPlane = new THREE.Mesh(geometry, prevMaterial);
                 prevPlane.rotation.x = -Math.PI / 2;
-                prevPlane.position.x = plane.position.x - 640+w;
+                prevPlane.position.x = plane.position.x - 639;
                 prevPlane.position.z = plane.position.z;
                 scene.add(prevPlane);
-                scene.remove(plane);
-                plane = prevPlane;
-
+                scene.remove(succPlane);
+                scene.remove(supPlane);
+                scene.remove(infPlane);
+                succPlane=plane;
+                plane=prevPlane;
+                prevPlane=null;
             }
+            if(succPlane!=null) succPlane.position.x += moveDistance;
+            if(prevPlane!=null) prevPlane.position.x += moveDistance;
+            if(infPlane!=null) infPlane.position.x += moveDistance;
+            if(supPlane!=null) supPlane.position.x += moveDistance;
+
         }
 
 
@@ -139,25 +249,34 @@
             console.log("right");
             newC_lon = succCenter(c_lon);
 
-            if((plane.position.x > (w-640)/2) || (newC_lon <= 180 && newC_lon >= -180)) {
+            if((plane.position.x >= (w-640)/2) || (newC_lon <= 180 && newC_lon >= -180)) {
                 plane.position.x -= moveDistance;
             }
-            while((plane.position.x < (-640 + w)/2) && (newC_lon <= 180 && newC_lon >= -180)) {
+
+            console.log(plane.position.x);
+
+            while((plane.position.x < ((-640 + w)/2)/2) && (newC_lon <= 180 && newC_lon >= -180)) {
+                scene.remove(succPlane);
                 c_lon=newC_lon;
-                var succ = new THREE.BoxGeometry(640, 640, 0.1);
-                var succTexture = new THREE.ImageUtils.loadTexture("/image/<%=c_lat%>/" +
-                        c_lon + "/<%=zoom%>", {}, function () {
+                var succTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/" +
+                        c_lon + "/"+z, {}, function () {
                 });
                 succTexture.minFilter = THREE.LinearFilter;
                 var succMaterial = new THREE.MeshBasicMaterial({map: succTexture, color: 0xffffff});
-                succPlane = new THREE.Mesh(succ, succMaterial);
+                succPlane = new THREE.Mesh(geometry, succMaterial);
                 succPlane.rotation.x = -Math.PI / 2;
-                succPlane.position.x = plane.position.x + 640-w;
+                succPlane.position.x = plane.position.x + 639;
                 succPlane.position.z = plane.position.z;
                 scene.add(succPlane);
-                scene.remove(plane);
-                plane = succPlane;
+                scene.remove(prevPlane);
+                prevPlane=plane;
+                plane=succPlane;
+                succPlane=null;
             }
+            if(prevPlane!=null) prevPlane.position.x -= moveDistance;
+            if(succPlane!=null) succPlane.position.x -= moveDistance;
+            if(supPlane!=null) supPlane.position.x -= moveDistance;
+            if(infPlane!=null) infPlane.position.x -= moveDistance;
         }
 
         controls.update();
