@@ -27,7 +27,8 @@ var width = function(d, z){
 
 /* GET home page. */
 router.get('/image/:c_lat/:c_lon/:zoom', function(req, res) {
-    var url = 'https://maps.googleapis.com/maps/api/staticmap?size=640x640&center=';
+    var url = 'https://maps.googleapis.com/maps/api/staticmap?size=640x640&key=AIzaSyBmYC8wXlEiF1ZNIhjWJCVkVilzWA_VfeA' +
+        '&center=';
     console.log(url+req.params.c_lat+","+req.params.c_lon+"&zoom="+req.params.zoom);
     request(url+req.params.c_lat+","+req.params.c_lon+"&zoom="+req.params.zoom).pipe(res);
 });

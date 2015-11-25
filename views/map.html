@@ -77,7 +77,7 @@
     }
 
     function approxLat(LAT){
-        return (-0.0073*LAT)+1;
+        return (LAT+48.387946125)/132.89234375;
     }
 
 //    Calcola il centro della tile superiore
@@ -92,12 +92,18 @@
 
 //    Calcola il centro della tile a destra
     function succCenter(a){
-        return ((360*640)/(256*Math.pow(2,z)))+a;
+        var c = ((360*640)/(256*Math.pow(2,z)))+a;
+        if(c>180)
+            c-=360;
+        return c;
     }
 
 //    Calcola il centro della tile a sinistra
     function prevCenter(a){
-        return a-((360*640)/(256*Math.pow(2,z)));
+        var b = a-((360*640)/(256*Math.pow(2,z)));
+        if(b<-180)
+            b+=360;
+        return b;
     }
 
     function animate()
@@ -112,8 +118,9 @@
         var moveDistance = 1;
 //        zoom up/down
         if(keyboard.pressed("W")){
+            z += 1;
             if(z<=20) {
-                z += 1;
+
                 var zoomedTexture = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {}, function () {
                 });
                 zoomedTexture.minFilter = THREE.LinearFilter;
@@ -129,7 +136,7 @@
         }
 
         if(keyboard.pressed("S")){
-            if(z>=1) {
+            if(z>1) {
                 z -= 1;
                 var deZoomedText = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {}, function () {
                 });
@@ -160,7 +167,7 @@
                     supPlane = new THREE.Mesh(geometry, supMaterial);
                     supPlane.rotation.x = -Math.PI/2;
                     supPlane.position.x = plane.position.x;
-                    supPlane.position.z = plane.position.z-639;
+                    supPlane.position.z = plane.position.z-639*approxLat(c_lat);
                     console.log(approxLat(c_lat));
                     plane.position.y = -0.2;
                     scene.add(supPlane);
@@ -194,7 +201,7 @@
                 infPlane = new THREE.Mesh(geometry, infMaterial);
                 infPlane.rotation.x = -Math.PI/2;
                 infPlane.position.x = plane.position.x;
-                infPlane.position.z = plane.position.z+639;
+                infPlane.position.z = plane.position.z+639*approxLat(c_lat);
                 console.log(approxLat(c_lat));
                 plane.position.y = -0.2;
                 scene.add(infPlane);
@@ -213,11 +220,10 @@
 
         if ( keyboard.pressed("left") ){
             console.log("left");
-            if((plane.position.x < (640-w)/2) || (newC_lon <= 180 && newC_lon >= -180)) {
-                plane.position.x += moveDistance;
-            }
+            plane.position.x += moveDistance;
+
             newC_lon=prevCenter(c_lon);
-            while((plane.position.x > (((640 - w)/2)/2)) && (newC_lon <= 180 && newC_lon >= -180)) {
+            while((plane.position.x > (((640 - w)/2)/2))) {
                 scene.remove(prevPlane);
                 c_lon=newC_lon;
                 var prevTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
