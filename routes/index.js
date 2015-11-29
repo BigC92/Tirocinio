@@ -5,7 +5,7 @@ var mathjs = require('mathjs');
 var longitude = 360;
 var latitude = 170.1022;
 
-var zoom_lon = function(dLon){
+/*var zoom_lon = function(dLon){
     var rapporto = ((longitude*640)/(256*dLon));
     return Math.floor((mathjs.log(rapporto, 2)));
 };
@@ -13,7 +13,11 @@ var zoom_lon = function(dLon){
 var zoom_lat = function(dLat){
     var rap = ((latitude*640)/(256*dLat));
     return Math.floor((mathjs.log(rap, 2)));
-};
+};*/
+
+function zoom(a){
+    return Math.floor(mathjs.log((180/a)*(640/256),2));
+}
 
 var height = function(d, z){
     var altezza = (256*Math.pow(2,z)*d)/latitude;
@@ -40,14 +44,16 @@ router.post("/map", function (req, res){
     var s_long = req.body.s_long;
 
 
-    var zoom = Math.min(zoom_lat(Math.abs(mathjs.subtract(n_lat, s_lat))),
-        zoom_lon(Math.abs(mathjs.subtract(n_long, s_long))));
+    //var zoom = Math.min(zoom_lat(Math.abs(mathjs.subtract(n_lat, s_lat))),
+    //    zoom_lon(Math.abs(mathjs.subtract(n_long, s_long))));
+    var z = zoom(Math.max(Math.abs(mathjs.subtract(n_lat, s_lat)),
+        Math.abs(mathjs.subtract(n_long, s_long)))) + 1;
     var c_lat = ((parseFloat(n_lat) + parseFloat(s_lat))/2);
     var c_lon = ((parseFloat(n_long)+parseFloat(s_long))/2);
-    var h = height(Math.abs(mathjs.subtract(n_lat,s_lat)),zoom);
-    var w = width(Math.abs(mathjs.subtract(n_long, s_long)), zoom);
+    var h = height(Math.abs(mathjs.subtract(n_lat,s_lat)),z);
+    var w = width(Math.abs(mathjs.subtract(n_long, s_long)), z);
     var a = req.body;
-    a.zoom = zoom;
+    a.zoom = z;
     a.c_lat = c_lat;
     a.c_lon = c_lon;
     a.height = h;

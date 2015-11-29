@@ -76,18 +76,41 @@
         scene.add(plane);
     }
 
-    function approxLat(LAT){
-        return Math.abs((LAT+48.387946125)/132.89234375);
+    function Bound(val, min, max){
+        val = Math.min(val, max);
+        return Math.max(val, min);
     }
 
-//    Calcola il centro della tile superiore
-    function supCenter(a){
-        return (((170.1022*640)/(256*Math.pow(2,z)))+a);
+    function convToRad(a){
+        return a * (Math.PI / 180);
     }
 
-//    Calcola il centro della tile inferiore
-    function infCenter(a){
-        return (a-((170.1022*640)/(256*Math.pow(2,z))));
+    function convToDeg(a){
+        return a * (180 / Math.PI);
+    }
+
+    function Mercator(lat){
+        var sin = Bound(Math.sin(convToRad(lat)), -0.9999, 0.9999);
+        return 128 + 0.5 * Math.log((1+sin)/(1-sin)) * (-256/(2 * Math.PI));
+    }
+
+    function invMercator(y){
+        var lat = convToDeg(2*Math.atan(Math.exp((y-128)/(-128/Math.PI))) - Math.PI/2);
+        return lat;
+    }
+
+    function getNord(lat, z, h){
+        var scala = Math.pow(2, z);
+        var latPx = Mercator(lat);
+        var nPx = (latPx - (h/2)/scala);
+        return invMercator(nPx);
+    }
+
+    function getSud(lat, z, h){
+        var scala = Math.pow(2, z);
+        var latPx = Mercator(lat);
+        var sPx = (latPx + (h/2)/scala);
+        return invMercator(sPx);
     }
 
 //    Calcola il centro della tile a destra
@@ -118,9 +141,13 @@
         var moveDistance = 1;
 //        zoom up/down
         if(keyboard.pressed("W")){
-            z += 1;
-            if(z<=20) {
-
+            plane.position.y+=0.2;
+            auxPlane.position.y+=0.2;
+            plane.position.x = 0;
+            plane.position.z = 0;
+            scene.remove(infPlane, supPlane, succPlane, prevPlane);
+            while(plane.position.y>7 && z<=20) {
+                z += 1;
                 var zoomedTexture = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {},
                         function () {
                 });
@@ -128,7 +155,10 @@
                 var zoomedMaterial = new THREE.MeshBasicMaterial({map: zoomedTexture, color: 0xffffff});
                 zoomP = new THREE.Mesh(geometry, zoomedMaterial);
                 zoomP.rotation.x = -Math.PI / 2;
-                zoomP.positions = plane.positions;
+                zoomP.position.x = plane.position.x;
+                zoomP.position.z = plane.position.z;
+                zoomP.position.y = 0;
+                auxPlane.position.y = 0.5;
                 scene.remove(plane);
                 scene.add(zoomP);
                 plane = zoomP;
@@ -137,7 +167,11 @@
         }
 
         if(keyboard.pressed("S")){
-            if(z>1) {
+            plane.position.y -=0.2;
+            plane.position.x = 0;
+            plane.position.z = 0;
+            scene.remove(infPlane, supPlane, succPlane, prevPlane);
+            while(plane.position.y<-7 && z>1) {
                 z -= 1;
                 var deZoomedText = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {},
                         function () {
@@ -146,7 +180,9 @@
                 var deZoomedMat = new THREE.MeshBasicMaterial({map: deZoomedText, color: 0xffffff});
                 zoomP = new THREE.Mesh(geometry, deZoomedMat);
                 zoomP.rotation.x = -Math.PI / 2;
-                zoomP.position = plane.position;
+                zoomP.position.x = plane.position.x;
+                zoomP.position.z = plane.position.z;
+                zoomP.position.y = 0;
                 scene.remove(plane);
                 scene.add(zoomP);
                 plane = zoomP;
@@ -157,10 +193,13 @@
 //        move forwards/backwards/left/right
         if ( keyboard.pressed("up") ){
             console.log("up");
-            plane.position.z += moveDistance;
-            newC_lat = supCenter(c_lat);
+            newC_lat = getNord(c_lat, z, 640);
+            if((plane.position.z < (640-h)/2)&&(newC_lat<85.0511 && newC_lat>-85.0511)) {
+                plane.position.z += moveDistance;
+            }
             while(plane.position.z > ((640 - h)/2)){
                 c_lat=newC_lat;
+                console.log(c_lat);
                 scene.remove(supPlane);
                 var supTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
                         c_lon+"/"+z,{}, function(){});
@@ -169,12 +208,11 @@
                 supPlane = new THREE.Mesh(geometry, supMaterial);
                 supPlane.rotation.x = -Math.PI/2;
                 supPlane.position.x = plane.position.x;
-                supPlane.position.z = plane.position.z-639*(approxLat(c_lat));
+                supPlane.position.y = plane.position.y;
+                supPlane.position.z = plane.position.z-320;
                 plane.position.y = -0.2;
                 scene.add(supPlane);
                 scene.remove(infPlane);
-                scene.remove(succPlane);
-                scene.remove(prevPlane);
                 infPlane=plane;
                 plane=supPlane;
                 supPlane=null;
@@ -187,10 +225,10 @@
         }
 
         if ( keyboard.pressed("down") ) {
-            console.log("down");
-            console.log((-640 + h)/2);
-            plane.position.z -= moveDistance;
-            newC_lat = infCenter(c_lat);
+            newC_lat = getSud(c_lat, z, 640);
+            if(plane.position.z > (h-640)/2 && (newC_lat<85.0511 && newC_lat>-85.0511)) {
+                plane.position.z -= moveDistance;
+            }
             while(plane.position.z < ((h - 640)/2)){
                 scene.remove(infPlane);
                 c_lat=newC_lat;
@@ -202,13 +240,11 @@
                 infPlane = new THREE.Mesh(geometry, infMaterial);
                 infPlane.rotation.x = -Math.PI/2;
                 infPlane.position.x = plane.position.x;
-                infPlane.position.z = plane.position.z+639*approxLat(c_lat);
-                console.log(approxLat(c_lat));
+                infPlane.position.y = plane.position.y;
+                infPlane.position.z = plane.position.z+319;
                 plane.position.y = -0.2;
                 scene.add(infPlane);
                 scene.remove(supPlane);
-                scene.remove(succPlane);
-                scene.remove(prevPlane);
                 supPlane=plane;
                 plane=infPlane;
                 infPlane=null;
@@ -236,10 +272,9 @@
                 prevPlane.rotation.x = -Math.PI / 2;
                 prevPlane.position.x = plane.position.x - 319;
                 prevPlane.position.z = plane.position.z;
+                prevPlane.position.y = plane.position.y;
                 scene.add(prevPlane);
                 scene.remove(succPlane);
-                scene.remove(supPlane);
-                scene.remove(infPlane);
                 succPlane=plane;
                 plane=prevPlane;
                 prevPlane=null;
@@ -255,14 +290,9 @@
         if ( keyboard.pressed("right") ) {
             console.log("right");
             newC_lon = succCenter(c_lon);
+            plane.position.x -= moveDistance;
 
-            if((plane.position.x >= (w-640)/2) || (newC_lon <= 180 && newC_lon >= -180)) {
-                plane.position.x -= moveDistance;
-            }
-
-            console.log(plane.position.x);
-
-            while((plane.position.x < ((-640 + w)/2)/2) && (newC_lon <= 180 && newC_lon >= -180)) {
+            while((plane.position.x < ((-640 + w)/2)/2)) {
                 scene.remove(succPlane);
                 c_lon=newC_lon;
                 var succTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/" +
@@ -274,10 +304,9 @@
                 succPlane.rotation.x = -Math.PI / 2;
                 succPlane.position.x = plane.position.x + 319;
                 succPlane.position.z = plane.position.z;
+                succPlane.position.y = plane.position.y;
                 scene.add(succPlane);
                 scene.remove(prevPlane);
-                scene.remove(supPlane);
-                scene.remove(infPlane);
                 prevPlane=plane;
                 plane=succPlane;
                 succPlane=null;
