@@ -19,7 +19,7 @@ function zoom(a){
     return Math.floor(mathjs.log((180/a)*(640/256),2));
 }
 
-var height = function(d, z){
+var height = function(d,z){
     var altezza = (256*Math.pow(2,z)*d)/latitude;
     return altezza*0.7;
 };

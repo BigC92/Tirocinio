@@ -24,19 +24,23 @@
     var clock = new THREE.Clock();
     var c_lon, c_lat;
     var newC_lon, newC_lat;
+    var c_up, c_down;
+    var c_we, c_es;
     var keyboard = new THREEx.KeyboardState();
     var w = parseFloat("<%=width%>");
     var h = parseFloat("<%=height%>");
     var z = parseInt("<%=zoom%>");
     var plane, succPlane, prevPlane, supPlane, infPlane, zoomP;
+    var infW, infE, supW, supE;
     var auxPlane;
 
     init();
     animate();
+
     function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20000);
-        camera.position.set(0,200,460);
+        camera.position.set(0,300,560);
 
         renderer = new THREE.WebGLRenderer({alpha: true});
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -145,7 +149,9 @@
             auxPlane.position.y+=0.2;
             plane.position.x = 0;
             plane.position.z = 0;
-            scene.remove(infPlane, supPlane, succPlane, prevPlane);
+            scene.remove(infPlane, supPlane, succPlane, prevPlane, infE, supE, infW, supW);
+            scene.add(plane);
+            console.log(plane.position.y);
             while(plane.position.y>7 && z<=20) {
                 z += 1;
                 var zoomedTexture = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {},
@@ -170,7 +176,8 @@
             plane.position.y -=0.2;
             plane.position.x = 0;
             plane.position.z = 0;
-            scene.remove(infPlane, supPlane, succPlane, prevPlane);
+            scene.remove(infPlane, supPlane, succPlane, prevPlane, infE, supE, infW, supW);
+            scene.add(plane);
             while(plane.position.y<-7 && z>1) {
                 z -= 1;
                 var deZoomedText = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {},
@@ -194,57 +201,108 @@
         if ( keyboard.pressed("up") ){
             console.log("up");
             newC_lat = getNord(c_lat, z, 640);
+            c_es = succCenter(c_lon);
+            c_we = prevCenter(c_lon);
+            plane.position.y = 0;
             if((plane.position.z < (640-h)/2)&&(newC_lat<85.0511 && newC_lat>-85.0511)) {
                 plane.position.z += moveDistance;
             }
             while(plane.position.z > ((640 - h)/2)){
                 c_lat=newC_lat;
                 console.log(c_lat);
-                scene.remove(supPlane);
+                scene.remove(supPlane, supE, supW);
+                scene.add(plane);
                 var supTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
                         c_lon+"/"+z,{}, function(){});
+                var supEText = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
+                        c_es+"/"+z,{}, function(){});
+                var supWText = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
+                        c_we+"/"+z,{}, function(){});
                 supTexture.minFilter = THREE.LinearFilter;
+                supEText.minFilter = THREE.LinearFilter;
+                supWText.minFilter = THREE.LinearFilter;
                 var supMaterial = new THREE.MeshBasicMaterial({map: supTexture, color: 0xffffff});
+                var supEMaterial = new THREE.MeshBasicMaterial({map: supEText, color: 0xffffff});
+                var supWMaterial = new THREE.MeshBasicMaterial({map: supWText, color:0xffffff});
                 supPlane = new THREE.Mesh(geometry, supMaterial);
+                supW = new THREE.Mesh(geometry, supWMaterial);
+                supE = new THREE.Mesh(geometry, supEMaterial);
+                supW.rotation.x = -Math.PI/2;
+                supE.rotation.x = -Math.PI/2;
+                supW.position.x = plane.position.x-320;
+                supW.position.z = plane.position.z-320;
+                supE.position.x = plane.position.x+320;
+                supW.position.y = plane.position.y;
+                supE.position.y = plane.position.y;
                 supPlane.rotation.x = -Math.PI/2;
+                supE.position.z = plane.position.z-320;
                 supPlane.position.x = plane.position.x;
                 supPlane.position.y = plane.position.y;
                 supPlane.position.z = plane.position.z-320;
                 plane.position.y = -0.2;
-                scene.add(supPlane);
-                scene.remove(infPlane);
+
+                scene.add(supW, supE);
+                scene.remove(infPlane, infE, infW);
                 infPlane=plane;
                 plane=supPlane;
+                infE=supE;
+                infW=supW;
+                supE=null;
+                supW=null;
                 supPlane=null;
             }
             if(infPlane!=null) infPlane.position.z +=moveDistance;
             if(supPlane!=null) supPlane.position.z += moveDistance;
             if(prevPlane!=null) prevPlane.position.z +=moveDistance;
             if(succPlane!=null) succPlane.position.z +=moveDistance;
+            if(supE!=null) supE.position.z +=moveDistance;
+            if(supW!=null) supW.position.z +=moveDistance;
+            if(infW!=null) infW.position.z +=moveDistance;
+            if(infE!=null) infE.position.z +=moveDistance;
             console.log(plane.position.z);
         }
 
         if ( keyboard.pressed("down") ) {
             newC_lat = getSud(c_lat, z, 640);
+            c_we = prevCenter(c_lon);
+            c_es = succCenter(c_lon);
+            plane.position.y = 0;
             if(plane.position.z > (h-640)/2 && (newC_lat<85.0511 && newC_lat>-85.0511)) {
                 plane.position.z -= moveDistance;
             }
             while(plane.position.z < ((h - 640)/2)){
-                scene.remove(infPlane);
+                scene.remove(infPlane, infE, infW);
+                scene.add(plane);
                 c_lat=newC_lat;
                 var infTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
                         c_lon+"/"+z,{}, function(){
                 });
+                var infEText = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
+                        c_es+"/"+z,{}, function(){});
+                var infWText = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
+                        c_we+"/"+z,{}, function(){});
                 infTexture.minFilter = THREE.LinearFilter;
+                infEText.minFilter = THREE.LinearFilter;
+                infWText.minFilter = THREE.LinearFilter;
                 var infMaterial = new THREE.MeshBasicMaterial({map: infTexture, color: 0xffffff});
+                var infEMaterial = new THREE.MeshBasicMaterial({map: infEText, color: 0xffffff});
+                var infWMaterial = new THREE.MeshBasicMaterial({map: infWText, color: 0xffffff});
                 infPlane = new THREE.Mesh(geometry, infMaterial);
+                infW = new THREE.Mesh(geometry, infWMaterial);
+                infE = new THREE.Mesh(geometry, infEMaterial);
+                infW.rotation.x = -Math.PI/2;
+                infE.rotation.x = -Math.PI/2;
+                infW.position.x = plane.position.x -320;
+                infE.position.x = plane.position.x +320;
+                infE.position.z = plane.position.z +320;
+                infW.position.z = plane.position.z +320;
                 infPlane.rotation.x = -Math.PI/2;
                 infPlane.position.x = plane.position.x;
                 infPlane.position.y = plane.position.y;
-                infPlane.position.z = plane.position.z+319;
+                infPlane.position.z = plane.position.z+320;
                 plane.position.y = -0.2;
-                scene.add(infPlane);
-                scene.remove(supPlane);
+                scene.add(infE, infW);
+                scene.remove(supPlane, supW, supE);
                 supPlane=plane;
                 plane=infPlane;
                 infPlane=null;
@@ -253,28 +311,55 @@
             if(infPlane!=null) infPlane.position.z -=moveDistance;
             if(prevPlane!=null) prevPlane.position.z -=moveDistance;
             if(succPlane!=null) succPlane.position.z -=moveDistance;
+            if(supE!=null) supE.position.z -=moveDistance;
+            if(supW!=null) supW.position.z -=moveDistance;
+            if(infW!=null) infW.position.z -=moveDistance;
+            if(infE!=null) infE.position.z -=moveDistance;
         }
 
         if ( keyboard.pressed("left") ){
             console.log("left");
             plane.position.x += moveDistance;
-
+            plane.position.y = 0;
             newC_lon=prevCenter(c_lon);
+            c_up = getNord(c_lat, z, 640);
+            c_down = getSud(c_lat, z, 640);
             while((plane.position.x > (((640 - w)/2)/2))) {
-                scene.remove(prevPlane);
+                scene.remove(prevPlane, infW, supW);
+                scene.add(plane);
                 c_lon=newC_lon;
                 var prevTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
                         c_lon+"/"+z, {}, function () {
                 });
+                var infWT = new THREE.ImageUtils.loadTexture("/image/"+c_down+"/"+
+                        c_lon+"/"+z, {}, function () {
+                });
+                var supWT =new THREE.ImageUtils.loadTexture("/image/"+c_up+"/"+
+                        c_lon+"/"+z, {}, function () {
+                });
                 prevTexture.minFilter = THREE.LinearFilter;
+                infWT.minFilter = THREE.LinearFilter;
+                supWT.minFilter = THREE.LinearFilter;
                 var prevMaterial = new THREE.MeshBasicMaterial({map: prevTexture, color: 0xffffff});
+                var infWLMaterial = new THREE.MeshBasicMaterial({map: infWT, color: 0xffffff});
+                var supWLMaterial = new THREE.MeshBasicMaterial({map: supWT, color: 0xffffff});
+                infW = new THREE.Mesh(geometry, infWLMaterial);
+                supW = new THREE.Mesh(geometry, supWLMaterial);
                 prevPlane = new THREE.Mesh(geometry, prevMaterial);
+                infW.rotation.x = -Math.PI / 2;
+                supW.rotation.x = -Math.PI / 2;
                 prevPlane.rotation.x = -Math.PI / 2;
-                prevPlane.position.x = plane.position.x - 319;
+                prevPlane.position.x = plane.position.x - 320;
+                infW.position.x = prevPlane.position.x;
+                supW.position.x = prevPlane.position.x;
                 prevPlane.position.z = plane.position.z;
                 prevPlane.position.y = plane.position.y;
-                scene.add(prevPlane);
-                scene.remove(succPlane);
+                infW.position.y = plane.position.y;
+                supW.position.y = plane.position.y;
+                infW.position.z = plane.position.z + 320;
+                supW.position.z = plane.position.z - 320;
+                scene.add(supW, infW);
+                scene.remove(succPlane, infE, supE);
                 succPlane=plane;
                 plane=prevPlane;
                 prevPlane=null;
@@ -283,29 +368,55 @@
             if(prevPlane!=null) prevPlane.position.x += moveDistance;
             if(infPlane!=null) infPlane.position.x += moveDistance;
             if(supPlane!=null) supPlane.position.x += moveDistance;
-
+            if(supE!=null) supE.position.x +=moveDistance;
+            if(supW!=null) supW.position.x +=moveDistance;
+            if(infW!=null) infW.position.x +=moveDistance;
+            if(infE!=null) infE.position.x +=moveDistance;
         }
 
 
         if ( keyboard.pressed("right") ) {
             console.log("right");
             newC_lon = succCenter(c_lon);
+            c_down = getSud(c_lat,z,640);
+            c_up = getNord(c_lat,z,640);
             plane.position.x -= moveDistance;
-
+            plane.position.y = 0;
             while((plane.position.x < ((-640 + w)/2)/2)) {
-                scene.remove(succPlane);
+                scene.remove(succPlane, infE, supE);
+                scene.add(plane);
                 c_lon=newC_lon;
                 var succTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/" +
                         c_lon + "/"+z, {}, function () {
                 });
+                var infERText = new THREE.ImageUtils.loadTexture("/image/"+c_down+"/" +
+                        c_lon + "/"+z, {}, function () {
+                });
+                var supERText = new THREE.ImageUtils.loadTexture("/image/"+c_up+"/" +
+                        c_lon + "/"+z, {}, function () {
+                });
                 succTexture.minFilter = THREE.LinearFilter;
+                infERText.minFilter = THREE.LinearFilter;
+                supERText.minFilter = THREE.LinearFilter;
                 var succMaterial = new THREE.MeshBasicMaterial({map: succTexture, color: 0xffffff});
+                var infERMaterial = new THREE.MeshBasicMaterial({map: infERText, color: 0xffffff});
+                var supERMaterial = new THREE.MeshBasicMaterial({map: supERText, color: 0xffffff});
+                infE = new THREE.Mesh(geometry, infERMaterial);
+                supE = new THREE.Mesh(geometry, supERMaterial);
                 succPlane = new THREE.Mesh(geometry, succMaterial);
                 succPlane.rotation.x = -Math.PI / 2;
-                succPlane.position.x = plane.position.x + 319;
+                infE.rotation.x = -Math.PI/2;
+                supE.rotation.x = -Math.PI/2;
+                succPlane.position.x = plane.position.x + 320;
+                infE.position.x = plane.position.x + 320;
+                supE.position.x = plane.position.x + 320;
                 succPlane.position.z = plane.position.z;
+                infE.position.z = plane.position.z + 320;
+                supE.position.z = plane.position.z - 320;
                 succPlane.position.y = plane.position.y;
-                scene.add(succPlane);
+                infE.position.y = plane.position.y;
+                supE.position.y = plane.position.y;
+                scene.add(infE, supE);
                 scene.remove(prevPlane);
                 prevPlane=plane;
                 plane=succPlane;
@@ -315,6 +426,10 @@
             if(succPlane!=null) succPlane.position.x -= moveDistance;
             if(supPlane!=null) supPlane.position.x -= moveDistance;
             if(infPlane!=null) infPlane.position.x -= moveDistance;
+            if(supE!=null) supE.position.x -=moveDistance;
+            if(supW!=null) supW.position.x -=moveDistance;
+            if(infW!=null) infW.position.x -=moveDistance;
+            if(infE!=null) infE.position.x -=moveDistance;
         }
 
         controls.update();
