@@ -21,11 +21,9 @@
     var renderer, scene, camera;
     var geometry = new THREE.BoxGeometry(640, 640, 0.1);
     var controls, texture, material;
-    var clock = new THREE.Clock();
     var c_lon, c_lat;
     var newC_lon, newC_lat;
-    var c_up, c_down;
-    var c_we, c_es;
+    var c_up, c_down, c_we, c_es;
     var keyboard = new THREEx.KeyboardState();
     var w = parseFloat("<%=width%>");
     var h = parseFloat("<%=height%>");
@@ -40,7 +38,7 @@
     function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20000);
-        camera.position.set(0,300,560);
+        camera.position.set(0,350,660);
 
         renderer = new THREE.WebGLRenderer({alpha: true});
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -73,7 +71,7 @@
         var newPlaneBSP = logicalBSP.subtract(auxBSP);
         var newMaterial = new THREE.MeshBasicMaterial({color: 0xffffff});
         auxPlane = newPlaneBSP.toMesh(newMaterial);
-        auxPlane.position.y = 0.5;
+        auxPlane.position.y = 0.6;
         auxPlane.rotation.x = -Math.PI/2;
 
         scene.add(auxPlane);
@@ -142,18 +140,19 @@
 
     function update()
     {
-        var moveDistance = 1;
+        var moveDistance = 1.5;
 //        zoom up/down
         if(keyboard.pressed("W")){
-            plane.position.y+=0.2;
-            auxPlane.position.y+=0.2;
-            plane.position.x = 0;
-            plane.position.z = 0;
-            scene.remove(infPlane, supPlane, succPlane, prevPlane, infE, supE, infW, supW);
-            scene.add(plane);
-            console.log(plane.position.y);
+            if(z<21){
+                plane.position.y+=0.2;
+                auxPlane.position.y+=0.2;
+            }
             while(plane.position.y>7 && z<=20) {
                 z += 1;
+                plane.position.x = 0;
+                plane.position.z = 0;
+                scene.remove(infPlane, supPlane, succPlane, prevPlane, infE, supE, infW, supW);
+                scene.add(plane);
                 var zoomedTexture = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {},
                         function () {
                 });
@@ -164,22 +163,32 @@
                 zoomP.position.x = plane.position.x;
                 zoomP.position.z = plane.position.z;
                 zoomP.position.y = 0;
-                auxPlane.position.y = 0.5;
+                auxPlane.position.y = 0.6;
                 scene.remove(plane);
                 scene.add(zoomP);
                 plane = zoomP;
                 zoomP = null;
             }
+            if(infPlane!=null) infPlane.position.y +=0.2;
+            if(supPlane!=null) supPlane.position.y +=0.2;
+            if(prevPlane!=null) prevPlane.position.y +=0.2;
+            if(succPlane!=null) succPlane.position.y +=0.2;
+            if(supE!=null) supE.position.y +=0.2;
+            if(supW!=null) supW.position.y +=0.2;
+            if(infW!=null) infW.position.y +=0.2;
+            if(infE!=null) infE.position.y +=0.2;
         }
 
         if(keyboard.pressed("S")){
-            plane.position.y -=0.2;
-            plane.position.x = 0;
-            plane.position.z = 0;
-            scene.remove(infPlane, supPlane, succPlane, prevPlane, infE, supE, infW, supW);
-            scene.add(plane);
+            if(z>1) {
+                plane.position.y -= 0.2;
+            }
             while(plane.position.y<-7 && z>1) {
                 z -= 1;
+                plane.position.x = 0;
+                plane.position.z = 0;
+                scene.remove(infPlane, supPlane, succPlane, prevPlane, infE, supE, infW, supW);
+                scene.add(plane);
                 var deZoomedText = new THREE.ImageUtils.loadTexture("/image/" + c_lat + "/" + c_lon + "/" + z, {},
                         function () {
                 });
@@ -195,11 +204,18 @@
                 plane = zoomP;
                 zoomP = null;
             }
+            if(infPlane!=null) infPlane.position.y -=0.2;
+            if(supPlane!=null) supPlane.position.y -=0.2;
+            if(prevPlane!=null) prevPlane.position.y -=0.2;
+            if(succPlane!=null) succPlane.position.y -=0.2;
+            if(supE!=null) supE.position.y -=0.2;
+            if(supW!=null) supW.position.y -=0.2;
+            if(infW!=null) infW.position.y -=0.2;
+            if(infE!=null) infE.position.y -=0.2;
         }
 
 //        move forwards/backwards/left/right
         if ( keyboard.pressed("up") ){
-            console.log("up");
             newC_lat = getNord(c_lat, z, 640);
             c_es = succCenter(c_lon);
             c_we = prevCenter(c_lon);
@@ -209,7 +225,6 @@
             }
             while(plane.position.z > ((640 - h)/2)){
                 c_lat=newC_lat;
-                console.log(c_lat);
                 scene.remove(supPlane, supE, supW);
                 scene.add(plane);
                 var supTexture = new THREE.ImageUtils.loadTexture("/image/"+c_lat+"/"+
@@ -417,7 +432,7 @@
                 infE.position.y = plane.position.y;
                 supE.position.y = plane.position.y;
                 scene.add(infE, supE);
-                scene.remove(prevPlane);
+                scene.remove(prevPlane, supW, infW);
                 prevPlane=plane;
                 plane=succPlane;
                 succPlane=null;
